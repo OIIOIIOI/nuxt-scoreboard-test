@@ -5,7 +5,7 @@
 
       <div class="mt-6">
         <ClientOnly>
-          <ScoreboardCurrentScore ws-url="ws://localhost:8000/WS/" />
+          <ScoreboardCurrentScore ws-url="ws://localhost:8080" :is-gateway="true" />
         </ClientOnly>
       </div>
 

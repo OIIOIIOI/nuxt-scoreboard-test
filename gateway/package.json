@@ -1,0 +1,14 @@
+{
+  "name": "scoreboard-websocket-gateway",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "WebSocket gateway for CRG Scoreboard to handle multiple client connections",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

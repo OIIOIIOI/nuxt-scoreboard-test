@@ -4,14 +4,27 @@ type WsUpdate = { state?: Record<string, unknown> }
 const props = withDefaults(
   defineProps<{
     /**
-     * Example: "ws://localhost:8000/WS/"
+     * WebSocket URL - can be direct scoreboard (ws://host:port/WS/) or gateway (ws://host:port)
+     * Example: "ws://localhost:8000/WS/" (direct) or "ws://localhost:8080" (gateway)
      */
     wsUrl?: string
+    /**
+     * Explicitly specify if connecting through a gateway.
+     * If not provided, will auto-detect based on URL (gateway if URL doesn't end with /WS/)
+     */
+    isGateway?: boolean
   }>(),
   {
     wsUrl: 'ws://192.168.1.144:8000/WS/',
+    isGateway: undefined,
   },
 )
+
+// Auto-detect gateway connection: gateway URLs don't end with /WS/
+const isGatewayConnection = computed(() => {
+  if (props.isGateway !== undefined) return props.isGateway
+  return !props.wsUrl.endsWith('/WS/')
+})
 
 const connected = ref(false)
 const lastError = ref<string | null>(null)
@@ -104,22 +117,27 @@ function connect() {
   ws.onopen = () => {
     connected.value = true
 
-    const registerMsg = {
-      action: 'Register',
-      paths: [
-        'ScoreBoard.CurrentGame.Team(1).Name',
-        'ScoreBoard.CurrentGame.Team(2).Name',
-        'ScoreBoard.CurrentGame.Team(1).Score',
-        'ScoreBoard.CurrentGame.Team(2).Score',
-        'ScoreBoard.CurrentGame.CurrentPeriod',
-        'ScoreBoard.CurrentGame.Period(*).Id',
-        'ScoreBoard.CurrentGame.Period(*).Number',
-        'ScoreBoard.CurrentGame.Period(*).CurrentJamNumber',
-        'ScoreBoard.CurrentGame.Clock(Period).Time',
-      ],
-    }
+    // Only register for paths if connecting directly to scoreboard
+    // Gateway connections receive all updates without registration
+    if (!isGatewayConnection.value) {
+      const registerMsg = {
+        action: 'Register',
+        paths: [
+          'ScoreBoard.CurrentGame.Team(1).Name',
+          'ScoreBoard.CurrentGame.Team(2).Name',
+          'ScoreBoard.CurrentGame.Team(1).Score',
+          'ScoreBoard.CurrentGame.Team(2).Score',
+          'ScoreBoard.CurrentGame.CurrentPeriod',
+          'ScoreBoard.CurrentGame.Period(*).Id',
+          'ScoreBoard.CurrentGame.Period(*).Number',
+          'ScoreBoard.CurrentGame.Period(*).CurrentJamNumber',
+          'ScoreBoard.CurrentGame.Clock(Period).Time',
+          'ScoreBoard.CurrentGame.Clock(Period).InvertedTime',
+        ],
+      }
 
-    ws?.send(JSON.stringify(registerMsg))
+      ws?.send(JSON.stringify(registerMsg))
+    }
   }
 
   ws.onmessage = (evt) => {
@@ -167,6 +185,8 @@ onBeforeUnmount(() => {
       </div>
       <div class="text-xs text-gray-400">
         {{ wsUrl }}
+        <span v-if="isGatewayConnection" class="ml-1 text-emerald-400">(via gateway)</span>
+        <span v-else class="ml-1 text-blue-400">(direct)</span>
       </div>
     </div>
 

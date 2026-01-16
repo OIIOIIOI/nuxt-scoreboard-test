@@ -39,3 +39,7 @@ The application connects to a scoreboard instance via WebSocket and HTTP. Defaul
 - **HTTP API Base URL**: `http://192.168.1.144:8000/`
 
 These can be configured per component via props or updated in the component defaults.
+
+## WebSocket Gateway
+
+For production deployments with many concurrent clients, a WebSocket gateway is available to handle client connections efficiently. The gateway maintains a single connection to the scoreboard and broadcasts updates to all connected clients, significantly improving scalability. See [`gateway/README.md`](gateway/README.md) for setup and usage instructions.
