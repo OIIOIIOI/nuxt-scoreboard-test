@@ -13,10 +13,17 @@ const props = withDefaults(
      * If not provided, will auto-detect based on URL (gateway if URL doesn't end with /WS/)
      */
     isGateway?: boolean
+    /**
+     * Location name when connecting through gateway with multiple instances.
+     * Example: "location1" or "location2"
+     * If not provided and using gateway, defaults to "default"
+     */
+    location?: string
   }>(),
   {
     wsUrl: 'ws://192.168.1.144:8000/WS/',
     isGateway: undefined,
+    location: undefined,
   },
 )
 
@@ -31,12 +38,43 @@ const lastError = ref<string | null>(null)
 
 const state = ref<Record<string, unknown>>({})
 
-const team1Name = computed(() => String(state.value['ScoreBoard.CurrentGame.Team(1).Name'] ?? 'Team 1'))
-const team2Name = computed(() => String(state.value['ScoreBoard.CurrentGame.Team(2).Name'] ?? 'Team 2'))
-const team1Score = computed(() => Number(state.value['ScoreBoard.CurrentGame.Team(1).Score'] ?? 0))
-const team2Score = computed(() => Number(state.value['ScoreBoard.CurrentGame.Team(2).Score'] ?? 0))
+// Detect if subscribed to multiple locations (keys will be prefixed)
+const gatewayLocations = computed(() => {
+  const locs = state.value['Gateway.Locations']
+  return Array.isArray(locs) ? locs : null
+})
+
+const isMultiLocation = computed(() => {
+  const locs = gatewayLocations.value
+  return locs !== null && locs.length > 1
+})
+
+// Get the location prefix to use (first location if multiple, or none if single)
+const locationPrefix = computed(() => {
+  if (!isMultiLocation.value) return ''
+  const firstLoc = gatewayLocations.value?.[0]
+  return firstLoc ? `Location(${firstLoc}).` : ''
+})
+
+// Helper to get state value with location prefix support
+function getState(key: string): unknown {
+  // Try prefixed key first (for multi-location)
+  if (locationPrefix.value) {
+    const prefixedKey = `${locationPrefix.value}${key}`
+    if (prefixedKey in state.value) {
+      return state.value[prefixedKey]
+    }
+  }
+  // Fall back to unprefixed key (for single location or direct connection)
+  return state.value[key]
+}
+
+const team1Name = computed(() => String(getState('ScoreBoard.CurrentGame.Team(1).Name') ?? 'Team 1'))
+const team2Name = computed(() => String(getState('ScoreBoard.CurrentGame.Team(2).Name') ?? 'Team 2'))
+const team1Score = computed(() => Number(getState('ScoreBoard.CurrentGame.Team(1).Score') ?? 0))
+const team2Score = computed(() => Number(getState('ScoreBoard.CurrentGame.Team(2).Score') ?? 0))
 const currentPeriodId = computed(() => {
-  const periodId = state.value['ScoreBoard.CurrentGame.CurrentPeriod']
+  const periodId = getState('ScoreBoard.CurrentGame.CurrentPeriod')
   return periodId !== undefined ? String(periodId) : null
 })
 
@@ -45,11 +83,19 @@ const currentPeriodNumber = computed(() => {
   if (!currentPeriodId.value) return null
 
   // Look through all Period(*).Id keys to find the one matching currentPeriodId
-  const periodPrefix = 'ScoreBoard.CurrentGame.Period('
+  const searchPrefix = locationPrefix.value + 'ScoreBoard.CurrentGame.Period('
   const idSuffix = ').Id'
 
   for (const key of Object.keys(state.value)) {
-    if (!key.startsWith(periodPrefix) || !key.endsWith(idSuffix)) continue
+    // Skip if key doesn't match our search pattern (with or without location prefix)
+    if (!key.includes('ScoreBoard.CurrentGame.Period(') || !key.endsWith(idSuffix)) continue
+    
+    // If we have a location prefix, only check keys with that prefix
+    if (locationPrefix.value && !key.startsWith(locationPrefix.value)) continue
+    
+    // Extract the period prefix part
+    const periodPrefix = locationPrefix.value + 'ScoreBoard.CurrentGame.Period('
+    if (!key.startsWith(periodPrefix)) continue
 
     // Extract period number from key: Period(1).Id -> "1"
     const periodNum = key.slice(periodPrefix.length, key.length - idSuffix.length)
@@ -67,7 +113,7 @@ const currentPeriod = computed(() => {
   if (!currentPeriodNumber.value) return null
 
   // Get the period number value
-  const periodNumber = state.value[`ScoreBoard.CurrentGame.Period(${currentPeriodNumber.value}).Number`]
+  const periodNumber = getState(`ScoreBoard.CurrentGame.Period(${currentPeriodNumber.value}).Number`)
 
   // If no Number field exists, use the period number from parentheses
   return periodNumber !== undefined ? String(periodNumber) : currentPeriodNumber.value
@@ -76,13 +122,13 @@ const currentPeriod = computed(() => {
 const currentJam = computed(() => {
   if (!currentPeriodNumber.value) return null
 
-  const jam = state.value[`ScoreBoard.CurrentGame.Period(${currentPeriodNumber.value}).CurrentJamNumber`]
+  const jam = getState(`ScoreBoard.CurrentGame.Period(${currentPeriodNumber.value}).CurrentJamNumber`)
 
   return jam !== undefined ? String(jam) : null
 })
 
 const periodClockTime = computed(() => {
-  const time = state.value['ScoreBoard.CurrentGame.Clock(Period).Time']
+  const time = getState('ScoreBoard.CurrentGame.Clock(Period).Time')
   return time !== undefined ? Number(time) : null
 })
 
@@ -112,7 +158,16 @@ function connect() {
   clearReconnectTimer()
   lastError.value = null
 
-  ws = new WebSocket(props.wsUrl)
+  // Build WebSocket URL with location parameter if using gateway
+  let wsUrl = props.wsUrl
+  if (isGatewayConnection.value && props.location) {
+    // Add location as query parameter
+    const url = new URL(wsUrl.replace(/^ws:/, 'http:'))
+    url.searchParams.set('location', props.location)
+    wsUrl = url.toString().replace(/^http:/, 'ws:')
+  }
+
+  ws = new WebSocket(wsUrl)
 
   ws.onopen = () => {
     connected.value = true
@@ -187,6 +242,9 @@ onBeforeUnmount(() => {
         {{ wsUrl }}
         <span v-if="isGatewayConnection" class="ml-1 text-emerald-400">(via gateway)</span>
         <span v-else class="ml-1 text-blue-400">(direct)</span>
+        <span v-if="gatewayLocations && gatewayLocations.length > 0" class="ml-1 text-purple-400">
+          [{{ gatewayLocations.join(', ') }}]
+        </span>
       </div>
     </div>
 
