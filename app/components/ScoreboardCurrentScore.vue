@@ -170,17 +170,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="flex gap-16 items-center">
-      <!-- Period and Jam -->
-      <div class="text-2xl font-bold flex flex-col">
-        <div v-if="currentPeriod !== null || currentJam !== null"
-          class="mt-3 flex items-center justify-center gap-2 text-base text-gray-400">
-          <span v-if="currentPeriod !== null">Period {{ currentPeriod }}</span>
-          <span v-if="currentPeriod !== null && currentJam !== null">•</span>
-          <span v-if="currentJam !== null">Jam {{ currentJam }}</span>
-        </div>
-        <span v-if="formattedPeriodClock !== null">{{ formattedPeriodClock }}</span>
-      </div>
+    <div class="flex flex-col gap-2 items-center">
       <!-- Score -->
       <div class="flex items-baseline justify-between gap-3">
         <div class="truncate text-lg font-semibold">
@@ -192,6 +182,16 @@ onBeforeUnmount(() => {
         <div class="truncate text-lg font-semibold text-right">
           {{ team2Name }}
         </div>
+      </div>
+      <!-- Period and Jam -->
+      <div class="text-2xl font-bold flex flex-col">
+        <div v-if="currentPeriod !== null || currentJam !== null"
+          class="mt-3 flex items-center justify-center gap-2 text-base text-gray-400">
+          <span v-if="currentPeriod !== null">Period {{ currentPeriod }}</span>
+          <span v-if="currentPeriod !== null && currentJam !== null">•</span>
+          <span v-if="currentJam !== null">Jam {{ currentJam }}</span>
+        </div>
+        <span class="text-center" v-if="formattedPeriodClock !== null">{{ formattedPeriodClock }}</span>
       </div>
     </div>
   </div>
