@@ -1,75 +1,41 @@
-# Nuxt Minimal Starter
+# Nuxt Scoreboard Test
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+A Nuxt.js frontend application for displaying live and historical roller derby game data from the [CRG Scoreboard](https://github.com/rollerderby/scoreboard) application.
 
-## Setup
+> **Note:** Part of this codebase was generated with the assistance of AI.
 
-Make sure to install dependencies:
 
-```bash
-# npm
-npm install
+## Features
 
-# pnpm
-pnpm install
+- **Live Game Display**: Real-time score updates via WebSocket connection
+  - Current period and jam information
+  - Period clock with time remaining
+  - Team names and scores
 
-# yarn
-yarn install
+- **Game History**: Browse and view detailed information about completed games
+  - Team rosters with skater names, numbers, and penalty counts
+  - Jam-by-jam breakdown with scores and cumulative totals
+  - Jammer information (name, roster number, lead status)
+  - Game statistics with visual charts (WIP)
 
-# bun
-bun install
-```
+## Tech Stack
 
-## Development Server
+- **Nuxt 4** - Vue.js framework with SSR support
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first styling
+- **nuxt-charts** (Unovis) - Data visualization
+- **WebSocket** - Real-time data connection
 
-Start the development server on `http://localhost:3000`:
+## Prerequisites
 
-```bash
-# npm
-npm run dev
+- Node.js (v18 or higher)
+- Access to a running CRG Scoreboard instance
 
-# pnpm
-pnpm dev
+## Configuration
 
-# yarn
-yarn dev
+The application connects to a scoreboard instance via WebSocket and HTTP. Default configuration:
 
-# bun
-bun run dev
-```
+- **WebSocket URL**: `ws://192.168.1.144:8000/WS/`
+- **HTTP API Base URL**: `http://192.168.1.144:8000/`
 
-## Production
-
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+These can be configured per component via props or updated in the component defaults.
